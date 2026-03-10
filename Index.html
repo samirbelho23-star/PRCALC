@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>CALCPR</title>
+
+<!-- Configuration iOS Spécifique -->
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="CALCPR"/>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%230a0a0a'/%3E%3Ctext x='18' y='125' font-family='Arial Black' font-weight='900' font-size='90' fill='%23f5c518'%3ECP%3C/text%3E%3C/svg%3E"/>
+
+<!-- Meta Outre-mer -->
+<meta name="theme-color" content="#0a0a0a"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+:root {
+  --bg: #0a0a0a; --s1: #141414; --s2: #1c1c1c; --border: #2c2c2c;
+  --text: #f0ede8; --muted: #5a5a5a; --accent: #f5c518;
+  --red: #e63946; --green: #3ddc84;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* Empêcher le scroll global sur iOS (effet rebond) */
+html, body { 
+    height: 100%; 
+    background: var(--bg); 
+    overflow: hidden; 
+    position: fixed; 
+    width: 100%;
+}
+
+body { 
+    font-family: 'DM Mono', monospace; 
+    color: var(--text); 
+    display: flex; 
+    flex-direction: column;
+}
+
+#app { 
+    height: 100%; 
+    display: flex; 
+    flex-direction: column; 
+    padding-top: var(--safe-t); 
+}
+
+/* Header fixe */
+.hdr { flex-shrink: 0; padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--bg); }
+.logo { font-family: 'Barlow Condensed', sans-serif; font-size: 1.8rem; font-weight: 900; letter-spacing: 2px; }
+.logo em { color: var(--accent); font-style: normal; }
+
+/* Zone de contenu scrollable */
+.content { 
+    flex: 1; 
+    overflow-y: auto; 
+    -webkit-overflow-scrolling: touch; 
+    padding-bottom: 40px; 
+}
+
+.panel { display: none; padding: 20px; }
+.panel.active { display: block; }
+
+/* UI Elements */
+.section { margin-bottom: 25px; }
+.lbl { font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+
+.inp { 
+    background: var(--s1); border: 2px solid var(--border); color: var(--text); 
+    font-family: inherit; font-size: 1rem; padding: 14px; width: 100%; 
+    border-radius: 10px; outline: none; -webkit-appearance: none;
+}
+.inp:focus { border-color: var(--accent); }
+.inp.big { font-family: 'Barlow Condensed'; font-size: 2.5rem; font-weight: 900; }
+
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.btn { 
+    width: 100%; padding: 16px; background: var(--accent); color: #000; 
+    border: none; border-radius: 12px; font-family: 'Barlow Condensed'; 
+    font-size: 1.1rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
+}
+
+/* Bottom Nav style iOS */
+.bnav { 
+    flex-shrink: 0; display: flex; background: var(--s1); 
+    border-top: 1px solid var(--border); padding-bottom: var(--safe-b); 
+}
+.bnav-btn { 
+    flex: 1; padding: 12px 5px; background: none; border: none; 
+    color: var(--muted); display: flex; flex-direction: column; align-items: center; 
+}
+.bnav-btn.active { color: var(--accent); }
+.bnav-lbl { font-size: 0.6rem; font-weight: 700; margin-top: 4px; text-transform: uppercase; }
+
+/* Result Box */
+.cbox { background: var(--accent); border-radius: 12px; padding: 20px; color: #000; margin-top: 15px; }
+.cbox-val { font-family: 'Barlow Condensed'; font-size: 3.5rem; font-weight: 900; line-height: 1; }
+
+.toast { 
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%); 
+    background: var(--green); color: #000; padding: 10px 20px; 
+    border-radius: 20px; font-weight: 700; opacity: 0; transition: 0.3s; z-index: 1000; 
+}
+.toast.show { opacity: 1; top: 80px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+    <div class="hdr">
+        <div class="logo">CALC<em>PR</em></div>
+    </div>
+
+    <div class="content">
+        <!-- CALCUL -->
+        <div class="panel active" id="tab-calc">
+            <div class="section">
+                <div class="lbl">Mouvement</div>
+                <select class="inp" id="sel-ex" onchange="render()">
+                    <option>Snatch</option>
+                    <option>Clean & Jerk</option>
+                    <option>Back Squat</option>
+                    <option>Front Squat</option>
+                    <option>Deadlift</option>
+                </select>
+            </div>
+
+            <div class="section">
+                <div class="g2">
+                    <div>
+                        <div class="lbl">Mon PR (1RM)</div>
+                        <input class="inp big" type="number" id="inp-pr" placeholder="100" inputmode="decimal" oninput="render()"/>
+                    </div>
+                    <div>
+                        <div class="lbl">Unité</div>
+                        <select class="inp" id="sel-unit" onchange="render()" style="height: 78px;">
+                            <option>kg</option>
+                            <option>lbs</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="lbl">Pourcentage cible (%)</div>
+                <input class="inp" type="number" id="inp-pct" value="75" inputmode="numeric" oninput="render()"/>
+                <div id="res-box"></div>
+            </div>
+
+            <button class="btn" onclick="savePR()">Sauvegarder</button>
+        </div>
+
+        <!-- STATS -->
+        <div class="panel" id="tab-stats">
+            <div class="lbl">Progression</div>
+            <div style="height: 300px; background: var(--s1); border-radius: 12px; padding: 10px;">
+                <canvas id="chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="bnav">
+        <button class="bnav-btn active" onclick="showTab('calc')" id="bn-calc"><span>🏋️</span><div class="bnav-lbl">Calcul</div></button>
+        <button class="bnav-btn" onclick="showTab('stats')" id="bn-stats"><span>📈</span><div class="bnav-lbl">Stats</div></button>
+    </div>
+</div>
+
+<div id="toast" class="toast">✓ Sauvegardé</div>
+
+<script>
+let history = JSON.parse(localStorage.getItem('my_prs') || '{}');
+let chartObj = null;
+
+function showTab(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    document.getElementById('bn-' + id).classList.add('active');
+    if(id === 'stats') initChart();
+}
+
+function render() {
+    const pr = parseFloat(document.getElementById('inp-pr').value) || 0;
+    const pct = parseFloat(document.getElementById('inp-pct').value) || 0;
+    const unit = document.getElementById('sel-unit').value;
+    const res = document.getElementById('res-box');
+
+    if(pr > 0 && pct > 0) {
+        const val = Math.round((pr * pct / 100) * 2) / 2; // Arrondi à 0.5
+        res.innerHTML = `<div class="cbox"><div class="lbl">${pct}% de PR</div><div class="cbox-val">${val} <span style="font-size:1.5rem">${unit}</span></div></div>`;
+    } else {
+        res.innerHTML = '';
+    }
+}
+
+function savePR() {
+    const ex = document.getElementById('sel-ex').value;
+    const val = parseFloat(document.getElementById('inp-pr').value);
+    if(!val) return;
+    
+    if(!history[ex]) history[ex] = [];
+    history[ex].push({ d: new Date().toLocaleDateString(), v: val });
+    localStorage.setItem('my_prs', JSON.stringify(history));
+    
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function initChart() {
+    const ctx = document.getElementById('chart').getContext('2d');
+    const ex = document.getElementById('sel-ex').value;
+    const data = history[ex] || [];
+
+    if(chartObj) chartObj.destroy();
+    chartObj = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(i => i.d),
+            datasets: [{
+                data: data.map(i => i.v),
+                borderColor: '#f5c518',
+                tension: 0.3,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { grid: { color: '#2c2c2c' } }, x: { display: false } }
+        }
+    });
+}
+
+// Service Worker pour le mode hors-ligne
+if ('serviceWorker' in navigator) {
+    const sw = `const V='v1'; self.addEventListener('install',e=>e.waitUntil(caches.open(V).then(c=>c.add(location.href)))); self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));`;
+    const blob = new Blob([sw], {type: 'text/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(blob));
+}
+</script>
+</body>
+</html>
