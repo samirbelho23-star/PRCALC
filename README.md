@@ -1,2 +1,0 @@
-# PRCALC
-Calcule de PR 
